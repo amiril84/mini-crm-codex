@@ -22,7 +22,13 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       id: params.id
     },
     data: {
-      stage: body.stage
+      ...(body.dealName ? { dealName: body.dealName } : {}),
+      ...(body.amount ? { amount: Number(body.amount) } : {}),
+      stage: body.stage,
+      ...(body.expectedCloseDate ? { expectedCloseDate: new Date(body.expectedCloseDate) } : {}),
+      ...(Object.prototype.hasOwnProperty.call(body, "companyId") ? { companyId: body.companyId || null } : {}),
+      ...(Object.prototype.hasOwnProperty.call(body, "contactId") ? { contactId: body.contactId || null } : {}),
+      ...(body.ownerId ? { ownerId: body.ownerId } : {})
     },
     include: {
       company: true,
@@ -36,7 +42,20 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     amount: Number(deal.amount),
     stage: deal.stage,
     expectedCloseDate: deal.expectedCloseDate.toISOString(),
+    companyId: deal.companyId,
     companyName: deal.company?.name ?? null,
-    contactName: deal.contact?.name ?? null
+    contactId: deal.contactId,
+    contactName: deal.contact?.name ?? null,
+    ownerId: deal.ownerId
   });
+}
+
+export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
+  await prisma.deal.delete({
+    where: {
+      id: params.id
+    }
+  });
+
+  return NextResponse.json({ ok: true });
 }

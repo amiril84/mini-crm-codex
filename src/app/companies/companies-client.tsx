@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, Plus, X } from "lucide-react";
+import { Building2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 
 export type CompanyRow = {
@@ -8,6 +8,7 @@ export type CompanyRow = {
   name: string;
   phone: string;
   website: string;
+  ownerId: string;
   ownerName: string;
   createdAt: string;
   contactsCount: number;
@@ -52,7 +53,9 @@ export function CompaniesClient({
   const [companies, setCompanies] = useState(initialCompanies);
   const [selectedCompany, setSelectedCompany] = useState<CompanyRow | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [form, setForm] = useState<FormState>(() => emptyForm(defaultOwnerId));
 
   const selectedOwnerName = useMemo(
@@ -64,8 +67,8 @@ export function CompaniesClient({
     event.preventDefault();
     setIsSaving(true);
 
-    const response = await fetch("/api/companies", {
-      method: "POST",
+    const response = await fetch(modalMode === "edit" && selectedCompany ? `/api/companies/${selectedCompany.id}` : "/api/companies", {
+      method: modalMode === "edit" ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form)
     });
@@ -76,11 +79,49 @@ export function CompaniesClient({
       return;
     }
 
-    const createdCompany = (await response.json()) as CompanyRow;
-    setCompanies((current) => [createdCompany, ...current]);
-    setSelectedCompany(createdCompany);
+    const savedCompany = (await response.json()) as CompanyRow;
+    setCompanies((current) =>
+      modalMode === "edit"
+        ? current.map((company) => (company.id === savedCompany.id ? savedCompany : company))
+        : [savedCompany, ...current]
+    );
+    setSelectedCompany(savedCompany);
     setForm(emptyForm(defaultOwnerId));
     setIsModalOpen(false);
+  }
+
+  function openCreateModal() {
+    setModalMode("create");
+    setForm(emptyForm(defaultOwnerId));
+    setIsModalOpen(true);
+  }
+
+  function openEditModal(company: CompanyRow) {
+    setModalMode("edit");
+    setForm({
+      name: company.name,
+      phone: company.phone,
+      website: company.website,
+      ownerId: company.ownerId
+    });
+    setIsModalOpen(true);
+  }
+
+  async function handleDelete(company: CompanyRow) {
+    if (!window.confirm(`Delete ${company.name}?`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    const response = await fetch(`/api/companies/${company.id}`, { method: "DELETE" });
+    setIsDeleting(false);
+
+    if (!response.ok) {
+      return;
+    }
+
+    setCompanies((current) => current.filter((item) => item.id !== company.id));
+    setSelectedCompany(null);
   }
 
   return (
@@ -92,7 +133,7 @@ export function CompaniesClient({
         </div>
         <button
           className="inline-flex h-10 items-center gap-2 rounded-full bg-emerald-500 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
-          onClick={() => setIsModalOpen(true)}
+          onClick={openCreateModal}
           type="button"
         >
           <Plus className="h-4 w-4" />
@@ -139,7 +180,7 @@ export function CompaniesClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/40 px-4">
           <form className="w-full max-w-lg rounded bg-white p-6 shadow-xl" onSubmit={handleSubmit}>
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-950">Add Company</h2>
+              <h2 className="text-lg font-semibold text-gray-950">{modalMode === "edit" ? "Edit Company" : "Add Company"}</h2>
               <button aria-label="Close company form" className="rounded p-1 text-gray-500 hover:bg-gray-100" onClick={() => setIsModalOpen(false)} type="button">
                 <X className="h-5 w-5" />
               </button>
@@ -173,7 +214,7 @@ export function CompaniesClient({
                 Cancel
               </button>
               <button className="h-10 rounded-full bg-emerald-500 px-5 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" disabled={isSaving || !selectedOwnerName} type="submit">
-                {isSaving ? "Saving..." : "Save Company"}
+                {isSaving ? "Saving..." : modalMode === "edit" ? "Update Company" : "Save Company"}
               </button>
             </div>
           </form>
@@ -188,10 +229,20 @@ export function CompaniesClient({
                 <Building2 className="h-5 w-5" />
               </div>
               <h2 className="mt-4 text-2xl font-semibold text-gray-950">{selectedCompany.name}</h2>
-              <p className="mt-1 text-sm text-gray-500">Read-only company detail</p>
+              <p className="mt-1 text-sm text-gray-500">Company detail</p>
             </div>
             <button aria-label="Close company detail" className="rounded p-1 text-gray-500 hover:bg-gray-100" onClick={() => setSelectedCompany(null)} type="button">
               <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="mt-6 flex gap-3">
+            <button className="inline-flex h-10 items-center gap-2 rounded-full bg-emerald-500 px-4 text-sm font-semibold text-white hover:bg-emerald-600" onClick={() => openEditModal(selectedCompany)} type="button">
+              <Pencil className="h-4 w-4" />
+              Edit
+            </button>
+            <button className="inline-flex h-10 items-center gap-2 rounded-full border border-red-200 px-4 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60" disabled={isDeleting} onClick={() => handleDelete(selectedCompany)} type="button">
+              <Trash2 className="h-4 w-4" />
+              {isDeleting ? "Deleting..." : "Delete"}
             </button>
           </div>
           <div className="mt-6 grid gap-4 text-sm">

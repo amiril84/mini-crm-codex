@@ -27,6 +27,7 @@ export async function POST(request: Request) {
     name: company.name,
     phone: company.phone,
     website: company.website,
+    ownerId: company.ownerId,
     ownerName: company.owner.name,
     createdAt: company.createdAt.toISOString(),
     contactsCount: company.contacts.length,

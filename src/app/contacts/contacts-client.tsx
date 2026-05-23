@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, UserRound, X } from "lucide-react";
+import { Pencil, Plus, Trash2, UserRound, X } from "lucide-react";
 import { FormEvent, useState } from "react";
 
 export type ContactRow = {
@@ -8,7 +8,9 @@ export type ContactRow = {
   name: string;
   email: string;
   phone: string;
+  companyId: string | null;
   companyName: string;
+  ownerId: string;
   ownerName: string;
   createdAt: string;
   dealsCount: number;
@@ -62,15 +64,17 @@ export function ContactsClient({
   const [contacts, setContacts] = useState(initialContacts);
   const [selectedContact, setSelectedContact] = useState<ContactRow | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [form, setForm] = useState<FormState>(() => emptyForm(defaultOwnerId));
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
 
-    const response = await fetch("/api/contacts", {
-      method: "POST",
+    const response = await fetch(modalMode === "edit" && selectedContact ? `/api/contacts/${selectedContact.id}` : "/api/contacts", {
+      method: modalMode === "edit" ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form)
     });
@@ -81,11 +85,50 @@ export function ContactsClient({
       return;
     }
 
-    const createdContact = (await response.json()) as ContactRow;
-    setContacts((current) => [createdContact, ...current]);
-    setSelectedContact(createdContact);
+    const savedContact = (await response.json()) as ContactRow;
+    setContacts((current) =>
+      modalMode === "edit"
+        ? current.map((contact) => (contact.id === savedContact.id ? savedContact : contact))
+        : [savedContact, ...current]
+    );
+    setSelectedContact(savedContact);
     setForm(emptyForm(defaultOwnerId));
     setIsModalOpen(false);
+  }
+
+  function openCreateModal() {
+    setModalMode("create");
+    setForm(emptyForm(defaultOwnerId));
+    setIsModalOpen(true);
+  }
+
+  function openEditModal(contact: ContactRow) {
+    setModalMode("edit");
+    setForm({
+      name: contact.name,
+      email: contact.email,
+      phone: contact.phone,
+      companyId: contact.companyId ?? "",
+      ownerId: contact.ownerId
+    });
+    setIsModalOpen(true);
+  }
+
+  async function handleDelete(contact: ContactRow) {
+    if (!window.confirm(`Delete ${contact.name}?`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    const response = await fetch(`/api/contacts/${contact.id}`, { method: "DELETE" });
+    setIsDeleting(false);
+
+    if (!response.ok) {
+      return;
+    }
+
+    setContacts((current) => current.filter((item) => item.id !== contact.id));
+    setSelectedContact(null);
   }
 
   return (
@@ -97,7 +140,7 @@ export function ContactsClient({
         </div>
         <button
           className="inline-flex h-10 items-center gap-2 rounded-full bg-emerald-500 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
-          onClick={() => setIsModalOpen(true)}
+          onClick={openCreateModal}
           type="button"
         >
           <Plus className="h-4 w-4" />
@@ -144,7 +187,7 @@ export function ContactsClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/40 px-4">
           <form className="w-full max-w-lg rounded bg-white p-6 shadow-xl" onSubmit={handleSubmit}>
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-950">Add Contact</h2>
+              <h2 className="text-lg font-semibold text-gray-950">{modalMode === "edit" ? "Edit Contact" : "Add Contact"}</h2>
               <button aria-label="Close contact form" className="rounded p-1 text-gray-500 hover:bg-gray-100" onClick={() => setIsModalOpen(false)} type="button">
                 <X className="h-5 w-5" />
               </button>
@@ -189,7 +232,7 @@ export function ContactsClient({
                 Cancel
               </button>
               <button className="h-10 rounded-full bg-emerald-500 px-5 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" disabled={isSaving || !form.ownerId} type="submit">
-                {isSaving ? "Saving..." : "Save Contact"}
+                {isSaving ? "Saving..." : modalMode === "edit" ? "Update Contact" : "Save Contact"}
               </button>
             </div>
           </form>
@@ -204,10 +247,20 @@ export function ContactsClient({
                 <UserRound className="h-5 w-5" />
               </div>
               <h2 className="mt-4 text-2xl font-semibold text-gray-950">{selectedContact.name}</h2>
-              <p className="mt-1 text-sm text-gray-500">Read-only contact detail</p>
+              <p className="mt-1 text-sm text-gray-500">Contact detail</p>
             </div>
             <button aria-label="Close contact detail" className="rounded p-1 text-gray-500 hover:bg-gray-100" onClick={() => setSelectedContact(null)} type="button">
               <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="mt-6 flex gap-3">
+            <button className="inline-flex h-10 items-center gap-2 rounded-full bg-emerald-500 px-4 text-sm font-semibold text-white hover:bg-emerald-600" onClick={() => openEditModal(selectedContact)} type="button">
+              <Pencil className="h-4 w-4" />
+              Edit
+            </button>
+            <button className="inline-flex h-10 items-center gap-2 rounded-full border border-red-200 px-4 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60" disabled={isDeleting} onClick={() => handleDelete(selectedContact)} type="button">
+              <Trash2 className="h-4 w-4" />
+              {isDeleting ? "Deleting..." : "Delete"}
             </button>
           </div>
           <div className="mt-6 grid gap-4 text-sm">

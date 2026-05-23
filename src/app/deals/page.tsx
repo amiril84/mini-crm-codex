@@ -25,8 +25,11 @@ export default async function DealsPage() {
     amount: Number(deal.amount),
     stage: deal.stage,
     expectedCloseDate: deal.expectedCloseDate.toISOString(),
+    companyId: deal.companyId,
     companyName: deal.company?.name ?? null,
-    contactName: deal.contact?.name ?? null
+    contactId: deal.contactId,
+    contactName: deal.contact?.name ?? null,
+    ownerId: deal.ownerId
   }));
 
   const companyOptions: CompanyOption[] = companies.map((company) => ({

@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, DollarSign, GripVertical, Plus, X } from "lucide-react";
+import { CalendarDays, DollarSign, GripVertical, Pencil, Plus, Trash2, X } from "lucide-react";
 import { DragEvent, FormEvent, useMemo, useState } from "react";
 
 export type DealCard = {
@@ -9,8 +9,11 @@ export type DealCard = {
   amount: number;
   stage: string;
   expectedCloseDate: string;
+  companyId: string | null;
   companyName: string | null;
+  contactId: string | null;
   contactName: string | null;
+  ownerId: string;
 };
 
 export type CompanyOption = {
@@ -97,7 +100,9 @@ export function DealsClient({
   const [draggedDealId, setDraggedDealId] = useState<string | null>(null);
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [form, setForm] = useState<DealForm>(() => emptyForm(defaultOwnerId));
 
   const selectedDeal = useMemo(
@@ -163,8 +168,8 @@ export function DealsClient({
     event.preventDefault();
     setIsSaving(true);
 
-    const response = await fetch("/api/deals", {
-      method: "POST",
+    const response = await fetch(modalMode === "edit" && selectedDeal ? `/api/deals/${selectedDeal.id}` : "/api/deals", {
+      method: modalMode === "edit" ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form)
     });
@@ -175,11 +180,52 @@ export function DealsClient({
       return;
     }
 
-    const createdDeal = (await response.json()) as DealCard;
-    setDeals((currentDeals) => [...currentDeals, createdDeal]);
-    setSelectedDealId(createdDeal.id);
+    const savedDeal = (await response.json()) as DealCard;
+    setDeals((currentDeals) =>
+      modalMode === "edit"
+        ? currentDeals.map((deal) => (deal.id === savedDeal.id ? savedDeal : deal))
+        : [...currentDeals, savedDeal]
+    );
+    setSelectedDealId(savedDeal.id);
     setForm(emptyForm(defaultOwnerId));
     setIsModalOpen(false);
+  }
+
+  function openCreateModal() {
+    setModalMode("create");
+    setForm(emptyForm(defaultOwnerId));
+    setIsModalOpen(true);
+  }
+
+  function openEditModal(deal: DealCard) {
+    setModalMode("edit");
+    setForm({
+      dealName: deal.dealName,
+      amount: String(deal.amount),
+      stage: deal.stage,
+      expectedCloseDate: deal.expectedCloseDate.slice(0, 10),
+      companyId: deal.companyId ?? "",
+      contactId: deal.contactId ?? "",
+      ownerId: deal.ownerId
+    });
+    setIsModalOpen(true);
+  }
+
+  async function handleDelete(deal: DealCard) {
+    if (!window.confirm(`Delete ${deal.dealName}?`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    const response = await fetch(`/api/deals/${deal.id}`, { method: "DELETE" });
+    setIsDeleting(false);
+
+    if (!response.ok) {
+      return;
+    }
+
+    setDeals((currentDeals) => currentDeals.filter((item) => item.id !== deal.id));
+    setSelectedDealId(null);
   }
 
   return (
@@ -191,7 +237,7 @@ export function DealsClient({
         </div>
         <button
           className="inline-flex h-10 items-center gap-2 rounded-full bg-emerald-500 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
-          onClick={() => setIsModalOpen(true)}
+          onClick={openCreateModal}
           type="button"
         >
           <Plus className="h-4 w-4" />
@@ -278,10 +324,20 @@ export function DealsClient({
                 <DollarSign className="h-5 w-5" />
               </div>
               <h2 className="mt-4 text-2xl font-semibold text-gray-950">{selectedDeal.dealName}</h2>
-              <p className="mt-1 text-sm text-gray-500">Read-only deal detail</p>
+              <p className="mt-1 text-sm text-gray-500">Deal detail</p>
             </div>
             <button aria-label="Close deal detail" className="rounded p-1 text-gray-500 hover:bg-gray-100" onClick={() => setSelectedDealId(null)} type="button">
               <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="mt-6 flex gap-3">
+            <button className="inline-flex h-10 items-center gap-2 rounded-full bg-emerald-500 px-4 text-sm font-semibold text-white hover:bg-emerald-600" onClick={() => openEditModal(selectedDeal)} type="button">
+              <Pencil className="h-4 w-4" />
+              Edit
+            </button>
+            <button className="inline-flex h-10 items-center gap-2 rounded-full border border-red-200 px-4 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60" disabled={isDeleting} onClick={() => handleDelete(selectedDeal)} type="button">
+              <Trash2 className="h-4 w-4" />
+              {isDeleting ? "Deleting..." : "Delete"}
             </button>
           </div>
           <div className="mt-6 grid gap-4 text-sm">
@@ -298,7 +354,7 @@ export function DealsClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/40 px-4">
           <form className="w-full max-w-lg rounded bg-white p-6 shadow-xl" onSubmit={handleSubmit}>
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-950">Add Deal</h2>
+              <h2 className="text-lg font-semibold text-gray-950">{modalMode === "edit" ? "Edit Deal" : "Add Deal"}</h2>
               <button aria-label="Close deal form" className="rounded p-1 text-gray-500 hover:bg-gray-100" onClick={() => setIsModalOpen(false)} type="button">
                 <X className="h-5 w-5" />
               </button>
@@ -356,7 +412,7 @@ export function DealsClient({
                 Cancel
               </button>
               <button className="h-10 rounded-full bg-emerald-500 px-5 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" disabled={isSaving || !form.ownerId} type="submit">
-                {isSaving ? "Saving..." : "Save Deal"}
+                {isSaving ? "Saving..." : modalMode === "edit" ? "Update Deal" : "Save Deal"}
               </button>
             </div>
           </form>

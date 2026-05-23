@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, type PrismaClient as PrismaClientType } from "@prisma/client";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 
-const prisma = new PrismaClient();
+let prisma: PrismaClientType;
 let server: ChildProcess | undefined;
 
 async function isServerReady() {
@@ -53,6 +53,8 @@ async function dashboardRevenue(page: import("@playwright/test").Page) {
 }
 
 test.beforeAll(async () => {
+  prisma = new PrismaClient();
+
   if (!(await isServerReady())) {
     server = spawn(
       process.execPath,
@@ -70,7 +72,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  await prisma.$disconnect();
+  await prisma?.$disconnect();
 
   if (!server?.pid) {
     return;

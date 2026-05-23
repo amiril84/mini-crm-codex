@@ -27,6 +27,7 @@ Core stack:
 - **As a sales user, I can drag and drop deals between pipeline stages** so that stage totals update immediately with optimistic UI behavior.
 - **As a sales user, I can open a right-side detail panel for companies, contacts, and deals** so that I can review record details without leaving the current page.
 - **As a sales user, I can add a new deal from the Deals page** so that a new opportunity appears directly in the pipeline.
+- **As a sales user, I can edit and delete companies, contacts, and deals** so that I can keep CRM records accurate and remove records that are no longer needed.
 
 ## Tech Stack
 
@@ -66,7 +67,8 @@ Core stack:
 │   ├── fase3.spec.ts          # Activities tab and Call creation test
 │   ├── fase4.spec.ts          # Deals drag/drop optimistic total update test
 │   ├── fase5.spec.ts          # Login protection and Dashboard revenue sync test
-│   └── fase6.spec.ts          # Deal detail panel and Add Deal tests
+│   ├── fase6.spec.ts          # Deal detail panel and Add Deal tests
+│   └── edit-delete.spec.ts    # Edit and delete action tests for Companies, Contacts, and Deals
 ├── src/middleware.ts          # Route protection using a cookie-based dummy session
 ├── package.json               # Scripts and dependencies
 ├── playwright.config.ts       # Playwright E2E test configuration
@@ -173,6 +175,7 @@ The test suite covers:
 - Phase 4: Deals Kanban drag and drop with optimistic Total Value updates
 - Phase 5: Login protection and Dashboard Total Revenue synchronization
 - Phase 6: Deal detail panel and Add Deal flow
+- Edit/Delete: Companies, Contacts, and Deals edit and delete actions
 
 ## Database
 
@@ -203,7 +206,6 @@ Important relationships:
 ## Roadmap / Future Improvements
 
 - Replace dummy auth with production-ready authentication.
-- Add edit and delete actions for records.
 - Add search, filter, and sorting controls for tables and pipeline.
 - Add richer reporting and export capabilities.
 - Add deployment configuration for a production database.
