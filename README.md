@@ -3,6 +3,9 @@
 Mini CRM is a prototype customer relationship management application built with Next.js, SQLite, and Prisma. It helps sales users manage companies, contacts, activities, and deals through a clean dashboard-style interface.
 
 ## Demo Video
+
+Click the image below to watch the demo:
+
 <a href="https://www.youtube.com/watch?v=mb5pFWFMWuA">
   <img src="assets/thumbnail.jpg" alt="Mini CRM Demo Video" width="800">
 </a>
