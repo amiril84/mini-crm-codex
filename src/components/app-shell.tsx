@@ -1,5 +1,9 @@
+"use client";
+
 import { Bell, Building2, ClipboardList, CreditCard, DollarSign, LayoutDashboard, Package, Search, Settings, UsersRound } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import type { MouseEvent, ReactNode } from "react";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -10,7 +14,21 @@ const navigation = [
   { name: "Activities", href: "/activities", icon: ClipboardList }
 ];
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children }: { children: ReactNode }) {
+  const router = useRouter();
+
+  function handleNavigate(event: MouseEvent<HTMLAnchorElement>, href: string) {
+    if (href !== "/") {
+      return;
+    }
+
+    event.preventDefault();
+    router.push(href);
+    window.setTimeout(() => {
+      router.refresh();
+    }, 50);
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <aside
@@ -32,6 +50,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.name}
                 href={item.href}
+                onClick={(event) => handleNavigate(event, item.href)}
+                prefetch={false}
                 className={`flex items-center gap-3 rounded px-3 py-3 text-sm font-medium transition ${
                   active ? "bg-emerald-500 text-white" : "text-gray-300 hover:bg-white/10 hover:text-white"
                 }`}

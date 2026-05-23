@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 
 const allowedStages = new Set([
@@ -36,6 +37,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     }
   });
 
+  revalidatePath("/");
+  revalidatePath("/deals");
+
   return NextResponse.json({
     id: deal.id,
     dealName: deal.dealName,
@@ -56,6 +60,9 @@ export async function DELETE(_request: Request, { params }: { params: { id: stri
       id: params.id
     }
   });
+
+  revalidatePath("/");
+  revalidatePath("/deals");
 
   return NextResponse.json({ ok: true });
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 
 const allowedStages = new Set([
@@ -36,6 +37,9 @@ export async function POST(request: Request) {
       contact: true
     }
   });
+
+  revalidatePath("/");
+  revalidatePath("/deals");
 
   return NextResponse.json({
     id: deal.id,
