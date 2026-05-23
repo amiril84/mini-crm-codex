@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(cuid())
+  name      String
+  email     String    @unique
+  createdAt DateTime  @default(now()) @map("created_at")
+  companies Company[]
+  contacts  Contact[]
+  deals     Deal[]
+  tasks     Task[]
+  events    Event[]
+  calls     Call[]
+
+  @@map("users")
+}
+
+model Company {
+  id        String    @id @default(cuid())
+  name      String
+  phone     String
+  website   String
+  ownerId   String    @map("owner_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+  owner     User      @relation(fields: [ownerId], references: [id])
+  contacts  Contact[]
+  deals     Deal[]
+
+  @@map("companies")
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String
+  companyId String?  @map("company_id")
+  ownerId   String   @map("owner_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  company   Company? @relation(fields: [companyId], references: [id])
+  owner     User     @relation(fields: [ownerId], references: [id])
+  deals     Deal[]
+  calls     Call[]
+
+  @@map("contacts")
+}
+
+model Deal {
+  id                String   @id @default(cuid())
+  dealName          String   @map("deal_name")
+  amount            Decimal
+  stage             String
+  expectedCloseDate DateTime @map("expected_close_date")
+  companyId         String?  @map("company_id")
+  contactId         String?  @map("contact_id")
+  ownerId           String   @map("owner_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+  company           Company? @relation(fields: [companyId], references: [id])
+  contact           Contact? @relation(fields: [contactId], references: [id])
+  owner             User     @relation(fields: [ownerId], references: [id])
+
+  @@map("deals")
+}
+
+model Task {
+  id        String   @id @default(cuid())
+  taskName  String   @map("task_name")
+  dueDate   DateTime @map("due_date")
+  status    String
+  priority  String
+  ownerId   String   @map("owner_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  owner     User     @relation(fields: [ownerId], references: [id])
+
+  @@map("tasks")
+}
+
+model Event {
+  id        String   @id @default(cuid())
+  title     String
+  startTime DateTime @map("start_time")
+  endTime   DateTime @map("end_time")
+  ownerId   String   @map("owner_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  owner     User     @relation(fields: [ownerId], references: [id])
+
+  @@map("events")
+}
+
+model Call {
+  id              String   @id @default(cuid())
+  contactId       String   @map("contact_id")
+  direction       String
+  startTime       DateTime @map("start_time")
+  durationSeconds Int      @map("duration_seconds")
+  ownerId         String   @map("owner_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  contact         Contact  @relation(fields: [contactId], references: [id])
+  owner           User     @relation(fields: [ownerId], references: [id])
+
+  @@map("calls")
+}
